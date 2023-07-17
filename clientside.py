@@ -1,4 +1,5 @@
 import socket
+from os import name, system
 
 def send_key(key, server_ip, server_port):
     # Create a TCP/IP socket
@@ -6,33 +7,54 @@ def send_key(key, server_ip, server_port):
 
     # Connect to the server
     server_address = (server_ip, server_port)
-    client_socket.connect(server_address)
+
+    try:
+        client_socket.connect(server_address)
+    except ConnectionRefusedError:
+        print('Server authentication failed: Connection refused')
+        return
+    except TimeoutError:
+        print('Server authentication failed: Connection timed out')
+        return
 
     try:
         send_key_protocol(client_socket, key)
     except Exception as e:
         print('Error:', e)
+        print('Server authentication failed')
     finally:
         # Close the connection
         client_socket.close()
 
-def send_key_protocol(client_socket, key):
-    # Get the client's IP address and port
-    client_ip = client_socket.getsockname()[0]
-    client_port = client_socket.getsockname()[1]
+def send_key_protocol(key, server_ip, server_port):
+    # Create a TCP/IP socket
+    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    # Include the client's IP address in the key
-    key_with_ip = f"{key} ({client_ip}:{client_port})"
+    try:
+        # Set a timeout for the connection attempt
+        client_socket.settimeout(5)  # Adjust the timeout value as needed
 
-    # Send the key
-    client_socket.sendall(key_with_ip.encode('utf-8'))
+        # Connect to the server
+        server_address = (server_ip, server_port)
+        client_socket.connect(server_address)
+    except (socket.timeout, TimeoutError):
+        print('Server authentication failed: Connection timed out')
+        return
 
-    # Receive the validation result
-    validation_result = client_socket.recv(1024).decode('utf-8')
-    print('Validation result:', validation_result)
+    try:
+        send_key_protocol(client_socket, key)
+    except Exception as e:
+        print('Error:', e)
+        print('Server authentication failed')
+    finally:
+        # Close the connection
+        client_socket.close()
+
+system('cls' if name == 'nt' else 'clear')
 
 # Prompt the user to enter a key
 key = input('Enter your license key: ')
+print("\nSending key to server...\n")
 
 # Call the function to send the key and receive the validation result
 server_ip = "10.10.10.10"
