@@ -1,20 +1,16 @@
 import socket
-from os import name, system
+import os
 
 def send_key(key, server_ip, server_port):
-    # Create a TCP/IP socket
-    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-    # Connect to the server
-    server_address = (server_ip, server_port)
-
     try:
-        client_socket.connect(server_address)
+        client_socket = socket.create_connection((server_ip, server_port), timeout=5)
     except ConnectionRefusedError:
         print('Server authentication failed: Connection refused')
+        input('\nPress Enter to exit...')
         return
     except TimeoutError:
         print('Server authentication failed: Connection timed out')
+        input('\nPress Enter to exit...')
         return
 
     try:
@@ -22,35 +18,27 @@ def send_key(key, server_ip, server_port):
     except Exception as e:
         print('Error:', e)
         print('Server authentication failed')
+        input('\nPress Enter to exit...')
     finally:
-        # Close the connection
         client_socket.close()
 
-def send_key_protocol(key, server_ip, server_port):
-    # Create a TCP/IP socket
-    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
+def send_key_protocol(client_socket, key):
     try:
-        # Set a timeout for the connection attempt
-        client_socket.settimeout(5)  # Adjust the timeout value as needed
-
-        # Connect to the server
-        server_address = (server_ip, server_port)
-        client_socket.connect(server_address)
-    except (socket.timeout, TimeoutError):
+        client_socket.sendall(key.encode())
+        response = client_socket.recv(1024).decode()
+        print('Server response:', response)
+    except socket.timeout:
         print('Server authentication failed: Connection timed out')
-        return
-
-    try:
-        send_key_protocol(client_socket, key)
+        input('\nPress Enter to exit...')
     except Exception as e:
         print('Error:', e)
         print('Server authentication failed')
-    finally:
-        # Close the connection
-        client_socket.close()
+        input('\nPress Enter to exit...')
 
-system('cls' if name == 'nt' else 'clear')
+def clear_console():
+    os.system('cls' if os.name == 'nt' else 'clear')
+
+clear_console()
 
 # Prompt the user to enter a key
 key = input('Enter your license key: ')
